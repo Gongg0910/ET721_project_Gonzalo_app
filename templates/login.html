@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block sitetitle%}User Log-In{%endblock%}
+
+{%block content%} 
+    <h1 class="title">User Login </h1>
+    <form method="post" class="login_form">
+        <section class="form_section">
+            <input type="email" name="email" placeholder="Type email..." required/>
+        </section>
+
+        <section class="form_section">
+            <input type="password" name="password" placeholder="Enter password" required/>
+        </section>
+
+        <button type="submit" class="btn_login">Log-in</button>
+    </form>
+
+    <div class="signup_div">
+        <p>Don't have an account? <a href="{{url_for('signup')}}">Sign-up</a> </p>
+    </div>
+
+
+
+{%endblock%}
