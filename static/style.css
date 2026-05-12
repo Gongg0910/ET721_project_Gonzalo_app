@@ -11,7 +11,6 @@
     padding: 2rem;
     text-align: center;
 }
-
 /* login.html*/
 .title{
     text-align: center;
@@ -32,7 +31,7 @@
     border: none;
     border-radius: 5px;
     padding: 0.5rem 1rem;
-    transition: ease 500ms; 
+    transition: ease 500ms;
 }
 .btn_login:hover, .btn_signup:hover{
     background-color: crimson;
@@ -48,4 +47,7 @@
 }
 .signup_div a:hover{
     color: crimson;
+}
+.flash_msg{
+    color:crimson;
 }
