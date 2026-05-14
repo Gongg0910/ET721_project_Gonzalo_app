@@ -1,0 +1,23 @@
+{% extends 'base.html' %} 
+
+{% block sitetitle %}My To-Do List{% endblock %}
+
+{% block content %} 
+<h1 class="title_2">To-do list by Gonzalo Guerra</h1>
+<p>Logged in as: <strong>{{ username }}</strong></p>
+
+<form id="todo-form" onsubmit="event.preventDefault(); addTask();">
+    <div class="todo-controls"> 
+        <input type="text" id="taskinput" placeholder="Enter a task..." autocomplete="off"> 
+        <button type="submit" class="btnaddtask">Add Task</button> 
+    </div> 
+</form>
+
+<ul id="tasklist"></ul> 
+
+<hr> 
+<p><a href="{{ url_for('dashboard') }}">⬅ Back to Dashboard</a></p> 
+{% endblock %}
+
+
+<!-- <script src="{{url_for('static', filename ='script.js')}}"></script> -->
