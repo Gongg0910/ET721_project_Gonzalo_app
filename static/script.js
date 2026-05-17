@@ -142,3 +142,75 @@ function updating_task(id, new_text) {
     .then(() => loadTasks()) 
 }
 /* -------------------------------------------------------------- index.html -------------------------------------------------------------- */
+
+
+function Inline_editing(blog_id) {
+    const card = document.querySelector(`#blog_card${blog_id}`);
+    const paragraph = card.querySelector('.blog_content');
+    const old_text = paragraph.textContent;
+
+    const textarea = document.createElement('textarea');
+    textarea.classList.add('edit_field');
+    textarea.value = old_text;
+    textarea.style.width = "100%";
+    textarea.style.height = "80px";
+    textarea.style.margin = "10px 0";
+
+    // row
+    const buttonRow = document.createElement('div');
+    buttonRow.classList.add('edit_row');
+
+    // save button
+    const saving = document.createElement('button');
+    saving.textContent = "Save Changes";
+    saving.classList.add('btn_save');
+    saving.onclick = () => {
+
+        const updatedText = textarea.value.trim();
+
+        fetch(`/edit_blog/${blog_id}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ content: updatedText })
+        })
+        .then(res => {
+            /* To load after saving instead of refreshing website */
+            if (res.ok) {
+                window.location.reload();
+            }
+        });
+    };
+
+    // cancel button
+    const canceling = document.createElement('button');
+    canceling.textContent = "Cancel";
+    canceling.classList.add('btn_cancel');
+    canceling.onclick = () => {
+        card.replaceChild(paragraph, textarea);
+        buttonRow.remove(); 
+    };
+
+    buttonRow.appendChild(saving);
+    buttonRow.appendChild(canceling);
+
+    card.replaceChild(textarea, paragraph);
+    
+    textarea.insertAdjacentElement('afterend', buttonRow);
+}
+
+function click_for_likes(blog_id) {
+    fetch(`/like_blog/${blog_id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            const countSpan = document.querySelector(`#like_counting${blog_id}`);
+            /* Continue to like more */
+            if (countSpan) {
+                countSpan.textContent = data.likes;
+            }
+        } 
+    })
+}

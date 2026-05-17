@@ -1,14 +1,11 @@
 {% extends 'base.html' %} 
-
 {% block sitetitle %}Dashboard{% endblock %}
-
 {% block content %} 
 <h1 class="title">Welcome, {{username}}</h1>
-
 <div class="dashboard-links">
     <a href="{{ url_for('todo_list') }}" class="btn-todo-link">📋 Go to My To-Do List</a>
     <br><br>
-    <a href="{{ url_for('blog_1') }}" class="btn-todo-link">blog</a>
+    <a href="{{ url_for('blog_1') }}" class="btn-todo-link">📝Go to My Blog</a>
     <br><br>
     <a href="{{ url_for('image_1') }}" class="btn-todo-link">image</a>
     <br><br>

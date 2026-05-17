@@ -1,0 +1,70 @@
+{% extends 'base.html' %} 
+{% block title %}All Blogs{% endblock %} 
+{% block msg %} Gonzalo all blogs {% endblock %} 
+{% block content %} 
+
+<h1 class="title">Blog Feed</h1> 
+<p class="nagivate_links">
+    <a href="{{ url_for('index_blog') }}">📝 Create New Post</a> | 
+    <a href="{{ url_for('dashboard') }}">Dashboard</a>
+</p> 
+<hr> 
+
+<div> 
+    {% for blog in blogs %} 
+        <div class="blogzep" id="blog_card{{ blog['id'] }}">
+            <!-- username creating blog -->
+            <h3>{{ blog['title'] }}</h3> 
+            <p><strong>By: {{ blog['username'] }}</strong></p> 
+            
+            <p class="blog_content">{{ blog['content'] }}</p> 
+            
+            <!-- Time -->
+            <p class="timestamp">
+                <em>Posted on {{ blog['created_at'] }}</em>
+                {% if blog['is_edited'] == 1 %}
+                    <span class="edited">(edited)</span>
+                {% endif %}
+            </p> 
+
+            <!-- likes -->
+            <div class="likes"> 
+                <button onclick="click_for_likes({{ blog['id'] }})" class="btn_likes"> 
+                    👍 <span id="like_counting{{ blog['id'] }}">{{ blog['likes'] }}</span> 
+                </button> 
+            </div> 
+
+            <!-- editing -->
+            {% if session['username'] == blog['username'] %}
+                <button onclick="Inline_editing({{ blog['id'] }})" class="btn_edit">✏️ Edit Post</button>
+            {% endif %}
+
+
+            <!-- comments and feedback -->
+            <div class="comments">
+                <h4>Feedback & Comments</h4> 
+                
+                <div class="list">
+                    {% for comment in blog['comments'] %}
+                        <div class="item">
+                            <strong>{{ comment['username'] }}</strong>: {{ comment['comment_text'] }}
+                        </div>
+                    {% else %}
+                        <p class="empty_comments">No comments yet.</p>
+                    {% endfor %}
+                </div>
+
+                <!-- comments and Feedback -->
+                <form action="/add_comment/{{ blog['id'] }}" method="post" class="comment-form"> 
+                    <input type="text" name="comment_text" placeholder="Write a comment..." class="comment_field"> 
+                    <button type="submit" class="comment_submit">Comment</button> 
+                </form> 
+            </div>
+        </div>
+        
+    {% else %}
+        <!-- If blogs is empty -->
+        <p class="empty_blogs">No blogs created. Be the first one to create!</p> 
+    {% endfor %} 
+</div> 
+{% endblock %}

@@ -1,5 +1,6 @@
 import sqlite3
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+import mysql.connector
 
 app = Flask(__name__)
 app.secret_key = "dev_secret_key"
@@ -87,6 +88,129 @@ def signup():
 
 
 
+@app.route('/blog')
+def blog_1():
+
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT blog.id, users.username, blog.title, blog.content, blog.created_at, blog.is_edited 
+        FROM blog 
+        JOIN users ON blog.user_id = users.id
+        ORDER BY blog.created_at DESC
+    """)
+    blog_rows = cursor.fetchall()
+    
+    blogs_data = []
+    for row in blog_rows:
+        blog_dict = dict(row)  
+        
+        cursor.execute("""
+            SELECT username, comment_text, created_at 
+            FROM comments 
+            WHERE blog_id = ? 
+            ORDER BY created_at ASC
+        """, (blog_dict['id'],))
+        
+        blog_dict['comments'] = cursor.fetchall()
+        blogs_data.append(blog_dict)
+        
+    conn.close()
+    
+    return render_template('blogs.html', username=session['username'], blogs=blogs_data)
+
+
+@app.route('/add_blog', methods=['POST'])
+def add_blog(): 
+    title = request.form['title']
+    content = request.form['content']
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM users WHERE username = ?", (session['username'],))
+    user = cursor.fetchone()
+    
+    if user:
+        cursor.execute("INSERT INTO blog (user_id, title, content) VALUES (?, ?, ?)", (user['id'], title, content))
+        conn.commit()
+        
+    conn.close()
+    return redirect(url_for('blog_1'))
+
+
+@app.route('/index_blog')
+def index_blog():
+    if 'username' in session:
+        return render_template('index_blog.html')
+    return redirect(url_for('login'))
+
+
+@app.route('/edit_blog/<int:blog_id>', methods=['POST'])
+def edit_blog(blog_id):
+
+    data = request.get_json()
+    new = data.get('content')
+     
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT blog.id FROM blog 
+        JOIN users ON blog.user_id = users.id 
+        WHERE blog.id = ? AND users.username = ?
+    """, (blog_id, session['username']))
+    post = cursor.fetchone()
+    
+    if post:
+        cursor.execute("""
+            UPDATE blog 
+            SET content = ?, is_edited = 1 
+            WHERE id = ?
+        """, (new.strip(), blog_id))
+        conn.commit()
+        conn.close()
+        return jsonify({'status': 'success'})
+        
+    conn.close()
+
+
+@app.route('/add_comment/<int:blog_id>', methods=['POST'])
+def add_comment(blog_id):
+    
+    comment_text = request.form.get('comment_text')
+    if comment_text and comment_text.strip() != "":
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO comments (blog_id, username, comment_text) VALUES (?, ?, ?)",
+            (blog_id, session['username'], comment_text.strip())
+        )
+        conn.commit()
+        conn.close()
+        
+    return redirect(url_for('blog_1'))
+
+
+@app.route('/like_blog/<int:blog_id>', methods=['POST'])
+def like_blog(blog_id):
+  
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT likes FROM blog WHERE id = ?", (blog_id,))
+    blog = cursor.fetchone()
+    
+    if blog:
+        new_likes = blog['likes'] + 1
+        cursor.execute("UPDATE blog SET likes = ? WHERE id = ?", (new_likes, blog_id))
+        conn.commit()
+        conn.close()
+        return jsonify({'status': 'success', 'likes': new_likes})
+        
+    conn.close()
+
+
 # ------------------------------------------------------------------------#
 # All 3 routes #
 # ------------------------------------------------------------------------#
@@ -96,11 +220,11 @@ def todo_list():
         return render_template('index.html', username=session['username'])
     return redirect(url_for('login'))
 
-@app.route('/blog')
-def blog_1():
-    if 'username' in session:
-        return render_template('blog.html', username=session['username'])
-    return redirect(url_for('login'))
+# @app.route('/blog')
+# def blog_1():
+#     if 'username' in session:
+#         return render_template('blog.html', username=session['username'])
+#     return redirect(url_for('login'))
 
 @app.route('/image')
 def image_1():
@@ -223,28 +347,6 @@ def update_task():
 # ------------------------------------------------------------------------------------------------------------------------------------------------#
 # TO DO LIST TASKS
 # ------------------------------------------------------------------------------------------------------------------------------------------------#
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
