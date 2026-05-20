@@ -1,9 +1,18 @@
 import sqlite3
+import os
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 import mysql.connector
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = "dev_secret_key"
+
+app.config['UPLOAD_FOLDER'] = 'static/uploads'
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # ------------------ #
 # DATABASE CONNECTION #
@@ -12,6 +21,16 @@ def get_db():
     conn = sqlite3.connect("flask_auth.db")
     conn.row_factory = sqlite3.Row
     return conn
+
+""" It is a must required in order to work for image.html upload/delete, otherwise it won't work and shut down whole webpages"""
+def login_required(w):
+    from functools import wraps
+    @wraps(w)
+    def function(*a, **b):
+        if 'username' not in session:
+            return redirect(url_for('login'))
+        return w(*a, **b)
+    return function
 
 # ------------------ #
 # LOADING PAGE       #
@@ -50,6 +69,7 @@ def login():
 # DASHBOARD ROUTING  #
 # ------------------ #
 @app.route('/dashboard')
+@login_required
 def dashboard():
     if 'username' in session:
         return render_template('dashboard.html', username=session['username'])
@@ -87,8 +107,14 @@ def signup():
     return render_template('signup.html')
 
 
-
+# ------------------------------------------------------------------------------------------------------------------------------------------------#
+# TO DO BLOG and COMMENT
+# ------------------------------------------------------------------------------------------------------------------------------------------------#
+# ------------------ #
+# BLOG and COMMENT   #
+# ------------------ #
 @app.route('/blog')
+@login_required
 def blog_1():
 
     conn = get_db()
@@ -122,6 +148,7 @@ def blog_1():
 
 
 @app.route('/add_blog', methods=['POST'])
+@login_required
 def add_blog(): 
     title = request.form['title']
     content = request.form['content']
@@ -140,6 +167,7 @@ def add_blog():
 
 
 @app.route('/index_blog')
+@login_required
 def index_blog():
     if 'username' in session:
         return render_template('index_blog.html')
@@ -147,6 +175,7 @@ def index_blog():
 
 
 @app.route('/edit_blog/<int:blog_id>', methods=['POST'])
+@login_required
 def edit_blog(blog_id):
 
     data = request.get_json()
@@ -176,6 +205,7 @@ def edit_blog(blog_id):
 
 
 @app.route('/add_comment/<int:blog_id>', methods=['POST'])
+@login_required
 def add_comment(blog_id):
     
     comment_text = request.form.get('comment_text')
@@ -193,6 +223,7 @@ def add_comment(blog_id):
 
 
 @app.route('/like_blog/<int:blog_id>', methods=['POST'])
+@login_required
 def like_blog(blog_id):
   
     conn = get_db()
@@ -209,12 +240,15 @@ def like_blog(blog_id):
         return jsonify({'status': 'success', 'likes': new_likes})
         
     conn.close()
-
+# ------------------------------------------------------------------------------------------------------------------------------------------------#
+# TTO DO BLOG and COMMENT
+# ------------------------------------------------------------------------------------------------------------------------------------------------#
 
 # ------------------------------------------------------------------------#
 # All 3 routes #
 # ------------------------------------------------------------------------#
 @app.route('/todo')
+@login_required
 def todo_list():
     if 'username' in session:
         return render_template('index.html', username=session['username'])
@@ -226,15 +260,14 @@ def todo_list():
 #         return render_template('blog.html', username=session['username'])
 #     return redirect(url_for('login'))
 
-@app.route('/image')
-def image_1():
-    if 'username' in session:
-        return render_template('image.html', username=session['username'])
-    return redirect(url_for('login'))
+# @app.route('/image')
+# def image_1():
+#     if 'username' in session:
+#         return render_template('image.html', username=session['username'])
+#     return redirect(url_for('login'))
 # ------------------------------------------------------------------------#
 # All routes #
 # ------------------------------------------------------------------------#
-
 
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------#
@@ -244,6 +277,7 @@ def image_1():
 # GET ALL TASKS      #
 # ------------------ #
 @app.route('/get_tasks', methods=['GET'])
+@login_required
 def get_tasks():
     conn = get_db()
     cursor = conn.cursor()
@@ -259,6 +293,7 @@ def get_tasks():
 # ADD NEW TASK       #
 # ------------------ #
 @app.route('/add_task', methods=['POST'])
+@login_required
 def add_task():
 
     data = request.get_json()
@@ -285,6 +320,7 @@ def add_task():
 # DELETE A TASK      #
 # ------------------ #
 @app.route('/delete_task', methods=['POST'])
+@login_required
 def delete_task():
 
     data = request.get_json()
@@ -307,6 +343,7 @@ def delete_task():
 # COMPLETE A TASK    #
 # ------------------ #
 @app.route('/toggle_task', methods=['POST'])
+@login_required
 def toggle_task():
     data = request.get_json()
     task_id = data.get('id')
@@ -326,6 +363,7 @@ def toggle_task():
 # UPDATE A TASK      #
 # ------------------ #
 @app.route('/update_task', methods=['POST'])
+@login_required
 def update_task():
 
     data = request.get_json()
@@ -348,7 +386,61 @@ def update_task():
 # TO DO LIST TASKS
 # ------------------------------------------------------------------------------------------------------------------------------------------------#
 
+# ------------------ #
+# Load image.html    #
+# ------------------ #
+@app.route('/image')
+@login_required
+def image_1():
+    conn = get_db()
+    cursor = conn.cursor()
 
+    cursor.execute("SELECT * FROM images ORDER BY uploaded_at DESC")
+
+    images = cursor.fetchall()
+    conn.close()
+    return render_template('image.html', username=session['username'], images=images)
+
+# ------------------ #
+# UPLOAD IMAGE       #
+# ------------------ #
+@app.route('/upload', methods=["POST"])
+@login_required
+def upload_image():
+
+    file = request.files['image']
+
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+
+        """ locate static/uploads in order to upload images"""
+        os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO images (filename) VALUES (?)", (filename,))
+        conn.commit()
+        conn.close()
+        return jsonify({'message': 'Image uploaded successfully!'})
+    
+# ------------------ #
+# DELETE IMAGE       #
+# ------------------ #
+@app.route('/delete_image_file/<int:image_id>', methods=['DELETE'])
+@login_required
+def delete_image_file(image_id):
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT filename FROM images WHERE id = ?", (image_id,))
+
+    cursor.execute("DELETE FROM images WHERE id = ?", (image_id,))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': 'Image deleted successfully'})
 
 # ------------------
 # RUN APP

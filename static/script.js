@@ -9,7 +9,10 @@ function validatePassword() {
     return true; 
 } 
 
+
+
 /* -------------------------------------------------------------- index.html -------------------------------------------------------------- */
+
 /* -------------------------- */
 /* Load task after adding     */
 /* -------------------------- */
@@ -144,6 +147,8 @@ function updating_task(id, new_text) {
 /* -------------------------------------------------------------- index.html -------------------------------------------------------------- */
 
 
+
+/* -------------------------------------------------------------- blogs.html -------------------------------------------------------------- */
 function Inline_editing(blog_id) {
     const card = document.querySelector(`#blog_card${blog_id}`);
     const paragraph = card.querySelector('.blog_content');
@@ -214,3 +219,58 @@ function click_for_likes(blog_id) {
         } 
     })
 }
+/* -------------------------------------------------------------- blogs.html -------------------------------------------------------------- */
+
+
+/* -------------------------------------------------------------- image.html -------------------------------------------------------------- */
+document.addEventListener("DOMContentLoaded", () => {
+    const upload_form = document.querySelector('#upload_form');
+    if (upload_form) {
+        upload_form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const fileInput = document.querySelector('#file_input');
+            const message = document.querySelector('#message');
+            
+            const formData = new FormData();
+            formData.append('image', fileInput.files[0]);
+            message.textContent = "Uploading...";
+            message.style.color = "orange";
+            
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    message.textContent = data.message;
+                    message.style.color = "green";
+                    fileInput.value = ""; 
+                    setTimeout(() => { window.location.reload(); }, 1000);
+                } 
+                else {
+                    message.textContent = data.error || "Upload failed";
+                    message.style.color = 'red';
+                }
+            })
+        });
+    }
+});
+
+function delete_image(id) {
+    /* alert user asking if you are sure to delete image */
+    if (!confirm("Are you sure you want to delete this image?")) return;
+    
+    fetch(`/delete_image_file/${id}`, { method: 'DELETE' })
+    .then(response => response.json())
+    .then(data => {
+        if (data.message) {
+            const imageCard = document.getElementById(`image_s${id}`);
+            if (imageCard) imageCard.remove();
+        } 
+        else {
+            alert(data.error || "Failed to delete image.");
+        }
+    })
+}
+/* -------------------------------------------------------------- image.html -------------------------------------------------------------- */

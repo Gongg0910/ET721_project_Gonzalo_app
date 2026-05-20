@@ -1,11 +1,39 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
-<body>
-    <h1>this is image</h1>
-</body>
-</html>
+{% extends 'base.html' %}
+{% block sitetitle %}Image Gallery{% endblock %}
+{% block content %}
+<div>
+    <header>
+        <h1 class="title">Upload Image</h1>
+        <p class="">Share your favorite images to the gallery</p>
+    </header>
+
+    <section>
+        <form id="upload_form">
+            <div>
+                <input type="file" name="image" id="file_input" required>
+            </div>
+            <button type="submit">Upload Image</button>
+        </form>
+        <p id="message"></p>
+    </section>
+
+    <section>
+        <h2>Gallery</h2>
+        <div class="gallery" id="gallery">
+            {% for image in images %}
+            <div class="card" id="image_s{{ image.id }}">
+                <img src="{{ url_for('static', filename='uploads/' + image.filename) }}" alt="Uploaded Content">
+
+                <a href="{{ url_for('static', filename='uploads/' + image.filename) }}" download="{{ image.filename }}" class="btn_download">📥 Download</a>
+                
+                <button onclick="delete_image({{ image.id }})" class="btn_delete">❌ Delete</button>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <footer>
+        <a href="{{ url_for('dashboard') }}">⬅️ Back to Dashboard</a>
+    </footer>
+</div>
+{% endblock %}
